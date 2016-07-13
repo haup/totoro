@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}Teams{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    <div class="btn-group">
+        <a class="btn btn-success" href="/teams/create">Add Team</a>
+    </div>
+</div>
+<ul class="list-group">
+    {% for team in teams %}
+     <li class="list-group-item clearfix" font-size="200%">
+        {{ team.id }}: {% for player in players %} {% if player.team_id == team.id %} {{ player.name }} {% endif %} {% endfor %}
+        <span class="pull-right button-group">
+            <a href="/teams/{{team.id}}" class="btn btn-primary"><span class="glyphicon glyphicon-edit"></span> Edit</a>
+            <a href="/teams/del/{{team.id}}" class="btn btn-danger"><span class="glyphicon glyphicon-remove"></span> Delete</a>
+        </span>
+     </li>
+    {% endfor %}
+</ul>
+{% endblock %}
+

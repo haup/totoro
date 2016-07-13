@@ -1,2 +1,3 @@
-# foos
-Responsive Website with Python Backend
+# Totoro
+
+Docker based Python Backend for foosbal tournaments. 

@@ -1,0 +1,29 @@
+
+Inhaltsverzeichnis
+
+Einführung:
+    - MOTIVATION  
+    - KAPITELBESCHREIBUNG 
+    - ZIELSETZUNG 
+    - Methodisches Vorgehen
+
+PROBLEMSTELLUNG UND ANFORDERUNGEN:
+    - KONZEPTUELLER AUFBAU DES SYSTEMS
+    - Funktionale Anforderungen
+    - Nicht-funktionale Anforderungen
+
+ENTWURFSMUSTER / ANALYSE:
+    - Datenbankmodell
+    - MVC-Entwurfsmuster
+    - REST-API
+
+GRUNDLAGEN DER EINZUSETZENDEN SOFTWARE:
+    - PYTHON MIT FLASK + EXTENSIONS
+    - SQLALCHEMY UND POSTGRESSQL
+    - BEISPIEL CLIENT: ANDROID, JAVA
+    - SONSTIGE TOOLS
+
+IMPLEMENTIERUNG
+
+AUSSICHT / FAZIT
+

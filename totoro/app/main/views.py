@@ -151,3 +151,7 @@ def del_tournament(id):
     db.session.delete(tournament)
     db.session.commit()
     return redirect(url_for('.list_tournaments'))
+
+@main.route('/tournaments/start/<int:id>')
+def start_tournament():
+    pass

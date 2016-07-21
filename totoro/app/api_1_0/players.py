@@ -29,7 +29,6 @@ def get_player(id):
 
 @api.route('/players', methods=['POST'])
 def create_player():
-    print(request)
     player = Player.from_json(request.json)
     db.session.add(player)
     db.session.commit()

@@ -2,6 +2,7 @@ from flask import url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.sql import func
 from app.exceptions import ValidationError
 from random import shuffle
 import sys
@@ -39,6 +40,7 @@ association_table = db.Table('player_team',
 
 
 class Player(db.Model):
+
     """Class Player"""
 
     __tablename__ = 'player'
@@ -64,11 +66,11 @@ class Player(db.Model):
         email = json_post.get('email')
         if name is None or email is None:
             raise ValidationError('post has an empty body')
-
         return Player(name=name, email=email)
 
 
 class Tournament(db.Model):
+
     """Class Tournament"""
 
     __tablename__ = 'tournament'
@@ -84,20 +86,26 @@ class Tournament(db.Model):
     def __repr__(self):
             return '<Tournament: %d>' % (self.id)
 
-    def generate_ranking(self, t_id = 1):
-        teams = Team.query.filter_by(tournament_id=t_id).all()
-        phase = 0#Tournament.query.filter_by(id=t_id).first().max_phase
-        matches = Match.query.filter_by(tournament_id=t_id).all()
-        print(teams)
+    # Ranking is reversed!
+    def generate_ranking(self): 
+        ranking = []
+        teams = Team.query.filter_by(tournament_id=self.id).all()
+        phase = db.session.query(func.max(Match.phase).label('max_phase')).filter_by(tournament_id=self.id).one()[0]
+        matches = Match.query.filter_by(tournament_id=self.id, phase=phase).all()
         if matches is None:
             random.shuffle(teams)
+            for team in teams:
+                ranking.append([team.id, 0, 0, 0])
         else:
-            pass
-        return teams, t_id, phase
+            for team in teams:
+                ranking.append([team, team.points, Tournament.calculate_buchholz1(team), Tournament.calculate_buchholz2(team)])
+                sorted(ranking, key=lambda x: (x[1], -x[2], -x[3]))
+        return ranking, phase
 
 
-    def draw_round(self, teams, tournament_id, phase):
+    def draw_round(self, ranking, phase):
         used = []
+        teams = Tournament.get_teams_from_ranking(ranking)
         for i, current_team in enumerate(teams):
             if current_team in used:
                 continue
@@ -106,7 +114,7 @@ class Tournament(db.Model):
             while teams[j] in used: # or teams[j] in looping_player[4]:
                 j += 1
             used.append(teams[j])
-            match = Match(team_a=current_team.id, team_b=teams[j].id, phase=phase + 1, tournament_id = tournament_id)
+            match = Match(team_a=current_team.id, team_b=teams[j].id, phase=phase + 1, tournament_id = self.id)
             db.session.add(match)
         db.session.commit()
 
@@ -143,8 +151,13 @@ class Tournament(db.Model):
     def calculate_buchholz2(team):
         buchholz2 = 0
         for opponent in team.history.split(','):
-            buchholz2 += Tournament.calculate_buchholz1(Team.query.filter_by(id=opponent).first())
+            o = Team.query.filter_by(id=opponent).first()
+            buchholz2 += Tournament.calculate_buchholz1(o)
         return buchholz2
+
+    @staticmethod
+    def get_teams_from_ranking(ranking:list):
+        return [x[0] for x in ranking]
 
 
 class Team(db.Model):
@@ -163,6 +176,7 @@ class Team(db.Model):
 
 
 class Match(db.Model):
+
     """docstring for Games"""
 
     __tablename__ = 'matches'
@@ -171,11 +185,24 @@ class Match(db.Model):
     team_b = db.Column(db.Integer, db.ForeignKey('team.id'))
     sets = db.relationship("Set", backref="match", lazy='dynamic')
     tournament_id = db.Column(db.Integer, db.ForeignKey('tournament.id'))
-    phase = db.Column(db.Integer)
+    phase = db.Column(db.Integer, default=0)
     over = db.Column(db.Boolean)
 
     def __repr__(self):
-        return '<Game %d went >' % (self.player)
+        return '<Game %d went >' % (self.id)
+
+    def to_json(self):
+        json_match = {
+            'url': url_for('api.get_match', match_id=self.id, _external=True),
+            'id': self.id,
+            'team_a': self.team_a,
+            'team_b': self.team_b,
+            'sets': [set.to_json() for set in self.sets.all()],
+            'tournament_id': self.tournament_id,
+            'phase': self.phase,
+            'over': self.over
+        }
+        return json_match
 
 
 class Set(db.Model):
@@ -186,5 +213,28 @@ class Set(db.Model):
     score_b = db.Column(db.Integer, nullable=False)
     match_id = db.Column(db.Integer, db.ForeignKey('matches.id'))
 
+    @staticmethod
+    def check_if_match_exists(match_id):
+        return True if Match.query.filter_by(id=match_id).count() == 1 else False
+
     def __repr__(self):
         return '<Set %d>' % (self.id)
+
+    def to_json(self):
+        json_match = {
+            'url': url_for('api.get_set_of_match', match_id=self.match_id, set_id=self.id, _external=True),
+            'id': self.id,
+            'score_a': self.score_a,
+            'score_b': self.score_b,
+            'match_id': self.match_id
+        }
+        return json_match
+
+    def from_json(json_post):
+        match_id = json_post.get('match_id')
+        score_a = json_post.get('score_a')
+        score_b = json_post.get('score_b')
+        if Set.check_if_match_exists(match_id) is False:
+            raise ValidationError('')
+        highest_id = db.session.query(func.max(Set.id).label('max_id')).one()[0]
+        return Set(id=highest_id + 1, score_a=score_a, score_b=score_b, match_id=match_id)

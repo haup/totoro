@@ -1,16 +1,65 @@
-from flask import render_template, session, redirect, url_for, current_app, flash
+from flask import render_template, redirect, url_for, abort, flash, request, current_app, make_response
+from flask_login import login_required, current_user
 from .. import db
 from ..models import User, Player, Team, Tournament
 from . import main
-from .forms import NameForm, PlayerForm, TeamForm, TournamentForm
+from .forms import NameForm, PlayerForm, TeamForm, TournamentForm, EditProfileForm, EditProfileAdminForm, SearchForm
 from datetime import datetime
 
+
+@main.before_request
+def before_request():
+    user = current_user
+    if user.is_authenticated:
+        user.last_seen = datetime.utcnow()
+        db.session.add(user)
+        db.session.commit()
+        user.search_form = SearchForm()
 
 @main.route('/', methods=['GET', 'POST'])
 def index():
     form = NameForm()
     return render_template('index.html', form=form)
 
+@main.route('/user/<username>')
+def user(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    return render_template('user.html', user=user)
+
+
+@main.route('/edit-profile', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    form = EditProfileForm()
+    if form.validate_on_submit():
+        current_user.name = form.name.data
+        db.session.add(current_user)
+        flash('Your profile has been updated.')
+        return redirect(url_for('.user', username=current_user.username))
+    form.name.data = current_user.name
+    return render_template('edit_profile.html', form=form)
+
+
+@main.route('/edit-profile/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_profile_admin(id):
+    user = User.query.get_or_404(id)
+    form = EditProfileAdminForm(user=user)
+    if form.validate_on_submit():
+        user.email = form.email.data
+        user.username = form.username.data
+        user.confirmed = form.confirmed.data
+        user.role = Role.query.get(form.role.data)
+        user.name = form.name.data
+        db.session.add(user)
+        flash('The profile has been updated.')
+        return redirect(url_for('.user', username=user.username))
+    form.email.data = user.email
+    form.username.data = user.username
+    form.confirmed.data = user.confirmed
+    form.role.data = user.role_id
+    form.name.data = user.name
+    return render_template('edit_profile.html', form=form, user=user)
 
 @main.route('/players', methods=['GET', 'POST'])
 def list_players():
@@ -19,6 +68,7 @@ def list_players():
 
 
 @main.route('/players/<int:id>', methods=['GET', 'POST'])
+@login_required
 def edit_player(id):
     player = Player.query.get_or_404(id)
     form = PlayerForm()
@@ -35,6 +85,7 @@ def edit_player(id):
 
 
 @main.route('/players/create', methods=['GET', 'POST'])
+@login_required
 def add_player():
     form = PlayerForm()
     if form.validate_on_submit():
@@ -48,6 +99,7 @@ def add_player():
 
 
 @main.route('/players/del/<int:id>', methods=['GET', 'POST'])
+@login_required
 def del_player(id):
     player = Player.query.get(id)
     db.session.delete(player)
@@ -56,6 +108,7 @@ def del_player(id):
 
 
 @main.route('/teams', methods=['GET', 'POST'])
+@login_required
 def list_teams():
     teams = Team.query.all()
     players = Player.query.all()
@@ -63,6 +116,7 @@ def list_teams():
 
 
 @main.route('/teams/create', methods=['GET', 'POST'])
+@login_required
 def add_team():
     form = TeamForm()
     if form.validate_on_submit():
@@ -78,6 +132,7 @@ def add_team():
 
 
 @main.route('/teams/<int:id>', methods=['GET', 'POST'])
+@login_required
 def edit_team(id):
     team = Team.query.get_or_404(id)
     form = TeamForm()
@@ -93,6 +148,7 @@ def edit_team(id):
     return render_template('edit_team.html', form=form, team=team)
 
 @main.route('/teams/del/<int:id>', methods=['GET', 'POST'])
+@login_required
 def del_team(id):
     team = Team.query.get(id)
     db.session.delete(team)
@@ -101,12 +157,14 @@ def del_team(id):
 
 
 @main.route('/tournaments', methods=["GET", "POST"])
+@login_required
 def list_tournaments():
     tournaments = Tournament.query.all()
     return render_template('tournaments.html', tournaments=tournaments)
 
 
 @main.route('/tournaments/create', methods=['GET', 'POST'])
+@login_required
 def add_tournament():
     form = TournamentForm()
     if form.validate_on_submit():
@@ -124,6 +182,7 @@ def add_tournament():
 
 
 @main.route('/tournaments/<int:id>', methods=['GET', 'POST'])
+@login_required
 def edit_tournament(id):
     tournament = Tournament.query.get_or_404(id)
     form = TournamentForm()
@@ -146,6 +205,7 @@ def edit_tournament(id):
 
 
 @main.route('/tournaments/del/<int:id>', methods=['GET', 'POST'])
+@login_required
 def del_tournament(id):
     tournament = Tournament.query.get(id)
     db.session.delete(tournament)
@@ -153,5 +213,6 @@ def del_tournament(id):
     return redirect(url_for('.list_tournaments'))
 
 @main.route('/tournaments/start/<int:id>')
+@login_required
 def start_tournament():
     pass

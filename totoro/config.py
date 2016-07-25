@@ -7,7 +7,16 @@ class Config(object):
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_ECHO = True
     SQLALCHEMY_TRACK_MODIFICATIONS = True
-
+    MAIL_SERVER = 'smtp.googlemail.com'
+    MAIL_PORT = 587
+    MAIL_USE_TLS = True
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+    TOTORO_MAIL_SUBJECT_PREFIX = '[Totoro]'
+    TOTORO_MAIL_SENDER = 'Admin <totoro@shibuja.jp>'
+    TOTORO_ADMIN = os.environ.get('TOTORO_ADMIN')
+    WHOOSH_BASE = os.path.join(basedir, 'search.db')
+    MAX_SEARCH_RESULTS = 50
 
     @staticmethod
     def init_app(app):

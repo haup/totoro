@@ -12,8 +12,12 @@
 <ul class="list-group">
     {% for tournament in tournaments %}
      <li class="list-group-item clearfix" font-size="200%">
-     {{ tournament.name }}
+     <a href="/tournaments/{{tournament.id}}/phases">{{ tournament.name }}</a>
         <span class="pull-right button-group">
+            {% if tournament.over %}
+            <a href="/tournaments/{{tournament.id}}/ko" class="btn btn-info"><span class="glyphicon glyphicon-plus"></span>KO</a>             
+            {% endif %}
+            <a href="/tournaments/{{tournament.id}}/teams" class="btn btn-warning"><span class="glyphicon glyphicon-plus"></span> Manage Teams</a>
             <a href="/tournaments/{{tournament.id}}" class="btn btn-primary"><span class="glyphicon glyphicon-edit"></span> Edit</a>
             <a href="/tournaments/del/{{tournament.id}}" class="btn btn-danger"><span class="glyphicon glyphicon-remove"></span> Delete</a>
         </span>

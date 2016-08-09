@@ -4,6 +4,12 @@ from .errors import forbidden
 
 
 def permission_required(permission):
+
+    """ This decorator lets only call the user a specific function
+        if the user is logged in.
+        Input: permission: object of permission enumeration
+        Output: decorator
+    """
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):

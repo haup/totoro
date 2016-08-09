@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}Players{% endblock %}
+
+{% block page_content %}
+    {% for phase in phases %}
+    <h2>Runde {{loop.index}}</h2>
+    <ul class="list-group">
+        {% for match in phase %}
+        <h4>Partie {{loop.index}}</h3>
+        <li class="list-group-item clearfix" font-size="200%">
+            {{ teams.get(match.team_a).toString() }} vs. {{ teams.get(match.team_b).toString() }}
+            <ul class="list-group">
+            {% for set in match.sets %}
+                <li class="list-group-item clearfix">
+                  Satz {{loop.index}}:  {{ set }}
+                </li>
+            {% endfor %}
+            </ul>
+        </li>
+        {% endfor %}
+        </ul>
+    {% endfor %}
+{% endblock %}

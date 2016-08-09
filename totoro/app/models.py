@@ -1,6 +1,4 @@
 from flask import current_app, request, url_for
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from app.exceptions import ValidationError
@@ -8,15 +6,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask_login import UserMixin, AnonymousUserMixin
 from random import shuffle
-import sys, bleach, hashlib
-import app
-import flask_whooshalchemyplus as whooshalchemy
+import hashlib
+import app, sys
 
 from datetime import datetime
 from . import db, login_manager
 
 Base = declarative_base()
-enable_search = True
 
 
 class Permission:
@@ -106,9 +102,6 @@ class User(UserMixin, db.Model):
         return self.role is not None and \
             (self.role.permissions & permissions) == permissions
 
-    def is_administrator(self):
-        return self.can(Permission.ADMINISTER)
-
     def generate_reset_token(self, expiration=3600):
         s = Serializer(current_app.config['SECRET_KEY'], expiration)
         return s.dumps({'reset': self.id})
@@ -153,7 +146,6 @@ class User(UserMixin, db.Model):
                        expires_in=expiration)
         return s.dumps({'id': self.id}).decode('ascii')
 
-
     @staticmethod
     def verify_auth_token(token):
         s = Serializer(current_app.config['SECRET_KEY'])
@@ -162,9 +154,6 @@ class User(UserMixin, db.Model):
         except:
             return None
         return User.query.get(data['id'])
-
-    def __repr__(self):
-        return '<User %r>' % self.username
 
     def ping(self):
         self.last_seen = datetime.utcnow()
@@ -195,9 +184,10 @@ def load_user(user_id):
 
 
 association_table = db.Table('player_team',
-    db.Column('player_id', db.Integer, db.ForeignKey('player.id')),
-    db.Column('team_id', db.Integer, db.ForeignKey('team.id'))
-)
+                             db.Column('player_id', db.Integer,
+                                       db.ForeignKey('player.id')),
+                             db.Column('team_id', db.Integer,
+                                       db.ForeignKey('team.id')))
 
 
 class Player(db.Model):
@@ -242,84 +232,70 @@ class Tournament(db.Model):
     teams = db.relationship("Team", backref="tournament", lazy='dynamic')
     parent = db.Column(db.Integer)
     max_phase = db.Column(db.Integer)
-
+    over = db.Column(db.Boolean)
 
     def __repr__(self):
             return '<Tournament: %d>' % (self.id)
 
-    # Ranking is reversed!
-    def generate_ranking(self):
-        ranking = []
-        teams = Team.query.filter_by(tournament_id=self.id).all()
-        phase = db.session.query(func.max(Match.phase).label('max_phase')).filter_by(tournament_id=self.id).one()[0]
-        matches = Match.query.filter_by(tournament_id=self.id, phase=phase).all()
-        if matches is None:
-            random.shuffle(teams)
-            for team in teams:
-                ranking.append([team.id, 0, 0, 0])
+    def shuffle_initial_ranking(self):
+        if self.modus == "Swiss":
+            teams = Team.query.filter_by(tournament_id=self.id).all()
+            if all(team.ranking == 0 for team in teams):
+                shuffle(teams)
+                for rank, team in enumerate(teams, start=1):
+                    team.ranking = rank
+                    db.session.add(team)
+                db.session.commit()
         else:
-            print("##########################")
-            for team in teams:
-                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>", team)
-                ranking.append([team, team.points, Tournament.calculate_buchholz1(team), Tournament.calculate_buchholz2(team)])
-            sorted(ranking, key=lambda x: (x[1], -x[2], -x[3]))
-        return ranking, phase
+            print("Tournament is not Swiss System")
 
+    def set_ranking(self):
+        teams = list(Team.query.filter_by(tournament_id=self.id).all())
+        for team in teams:
+            team.buchholz1 = Tournament.calculate_buchholz1(team)
+            team.buchholz2 = Tournament.calculate_buchholz2(team)
+        teams = sorted(teams, key=lambda x: (x.points,
+                       x.buchholz1, x.buchholz2, str(x)), reverse=True)
+        for ranking, team in enumerate(teams, start=1):
+            team.ranking = ranking
+            db.session.add(team)
+        db.session.commit()
 
-    def draw_round(self, ranking, phase):
+    def get_ranking(self):
+        teams = list(Team.query.filter_by(tournament_id=self.id).all())
+        return sorted(teams, key=lambda x: (x.ranking))
+
+    def get_latest_phase_of_tournament(self):
+        phase = db.session.query(func.max(Match.phase)).filter_by(
+            tournament_id=self.id).one()[0]
+        return phase if phase else 0
+
+    def draw_round(self):
+        phase = self.get_latest_phase_of_tournament()
         used = []
-        teams = Tournament.get_teams_from_ranking(ranking)
+        teams = self.get_ranking()
         for i, current_team in enumerate(teams):
             if current_team in used:
                 continue
             used.append(current_team)
             j = i + 1
-            while teams[j] in used: # or teams[j] in looping_player[4]:
+            while teams[j] in used:
                 j += 1
             used.append(teams[j])
-            match = Match(team_a=current_team.id, team_b=teams[j].id, phase=phase + 1, tournament_id = self.id)
+            match = Match(team_a=current_team.id, team_b=teams[j].id,
+                          phase=phase + 1, tournament_id=self.id)
             db.session.add(match)
         db.session.commit()
 
-    def finish_match(self, match_id):
-        # If alreasy done then clause, set around over-flag
-        # TODO in match auslagern
-        match = Match.query.filter_by(id=match_id).first()
+    def check_is_phase_finishable(self):
+        latest_phase = self.get_latest_phase_of_tournament()
+        matches_of_phase = Match.query.filter_by(tournament_id=self.id,
+                                                 phase=latest_phase).all()
+        return all(match.over for match in matches_of_phase)
 
-        if match.over:
-            return
-
-        set_count = Tournament.query.filter_by(id=match.tournament_id).first().set_count
-        sets = Set.query.filter_by(match_id=match.id).all()
-        team_a = Team.query.filter_by(id=match.team_a).first()
-        team_b = Team.query.filter_by(id=match.team_b).first()
-        team_a_sets = 0
-        for set in sets:
-            if set.score_a >= 5:
-                team_a_sets += 1
-        team_b_sets = len(sets) - team_a_sets
-        if team_a_sets == set_count or team_b_sets == set_count:
-            match.over = True
-            team_a.history = ('' if not team_a.history else team_a.history + ",") + str(team_b.id) 
-            team_b.history = ('' if not team_b.history else team_b.history + ",") + str(team_a.id)
-            if team_a_sets == set_count:
-                team_a.points = (0 if not team_a.points else team_a.points) + 1
-            else:
-                team_b.points = (0 if not team_b.points else team_b.points) + 1
-        db.session.commit()
-
-    def check_if_phase_is_over(self):
-        phase = db.session.query(func.max(Match.phase).label('max_phase')).filter_by(tournament_id=self.id).one()[0]
-        matches_of_phase = Match.query.filter_by(tournament_id=id, phase=phase).all()
-        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-        for match in matches:
-            if match.over == False:
-                return
-        print("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
-        ranking, latest_phase  = generate_ranking()
-        draw_round(ranking, phase)
-        return True
-
+    def check_is_tournament_finishable(self):
+        latest_phase = self.get_latest_phase_of_tournament()
+        return True if latest_phase == self.max_phase else False
 
     def to_json(self):
         json_tournament = {
@@ -329,40 +305,108 @@ class Tournament(db.Model):
             'modus': self.modus,
             'parent_id': self.parent if self.parent is not None else None,
             'max_phase': self.max_phase,
-            'teams': [team.to_json() for team in self.teams]
+            'teams': [team.to_json() for team in self.teams
+                      if team.tournament_id == self.id]
         }
         return json_tournament
 
+    def get_teams_from_other_tournament(self, teams):
+        for team in teams:
+            t = Team()
+            t.players = team.players
+            self.teams.append(t)
+
+    def set_initial_ko_ranking(self):
+        if len(self.teams.all()) == 8:
+            ko = [1, 8, 5, 4, 3, 6, 7, 2]
+        if len(self.teams.all()) == 16:
+            ko = [1, 16, 9, 8, 5, 12, 13, 4,
+                  3, 14, 11, 6, 7, 10, 2, 15]
+        for count, team in enumerate(self.teams.all()):
+            team.ranking = ko[count]
+        db.session.add(self)
+        db.session.commit()
+
+    def set_initial_ko_matches(self):
+        if len(self.teams.all()) == 8:
+            ko = [1, 8, 5, 4, 3, 6, 7, 2]
+        if len(self.teams.all()) == 16:
+            ko = [1, 16, 9, 8, 5, 12, 13, 4,
+                  3, 14, 11, 6, 7, 10, 2, 15]
+        for i in range(0, len(ko), 2):
+            team_a = self.teams.filter_by(ranking=ko[i]).first().id
+            team_b = self.teams.filter_by(ranking=ko[i + 1]).first().id
+            match = Match(team_a=team_a, team_b=team_b,
+                          tournament_id=self.id, phase=1)
+            db.session.add(match)
+        db.session.commit()
+
+    def draw_next_ko_round(self):
+        if self.modus == "KO":
+            winner = []
+            latest_phase = self.get_latest_phase_of_tournament()
+            matches = Match.query.filter_by(tournament_id=self.id,
+                                            phase=latest_phase).all()
+            if all(match.over for match in matches):
+                for match in matches:
+                    winner.append(match.get_winner_of_match())
+                for i in range(0, len(winner), 2):
+                    team_a = winner[i].id
+                    team_b = winner[i + 1].id
+                    match = Match(team_a=team_a, team_b=team_b,
+                                  tournament_id=self.id, phase=latest_phase+1)
+                    db.session.add(match)
+            else:
+                return "Round is not over"
+        db.session.commit()
 
     @staticmethod
     def calculate_buchholz1(team):
-        # team is none?
-        #if not team:
-        print("################################## Team", team)
-        print("################################## Hist", team.history)
-
         buchholz1 = 0
         for opponent in team.history.split(','):
-            if not opponent:
-                print("##################", repr(opponent))
             buchholz1 += Team.query.filter_by(id=opponent).first().points
         return buchholz1
 
     @staticmethod
     def calculate_buchholz2(team):
         buchholz2 = 0
-        if not team:
-            print("################################## Team2")
         for opponent in team.history.split(','):
-            if not team:
-                print("##################################2", opponent)
             o = Team.query.filter_by(id=opponent).first()
             buchholz2 += Tournament.calculate_buchholz1(o)
         return buchholz2
 
-    @staticmethod
-    def get_teams_from_ranking(ranking: list):
-        return [x[0] for x in ranking]
+    def get_matches_structured_in_phases(self):
+        phases = []
+        latest_phase = self.get_latest_phase_of_tournament()
+        matches = Match.query.filter_by(tournament_id=self.id)
+        if latest_phase:
+            for x in range(1, latest_phase + 1):
+                phases.append(list(matches.filter_by(phase=x)))
+        return phases
+
+    def get_matches_structured_in_ko(self):
+        phases = []
+        latest_phase = self.get_latest_phase_of_tournament()
+        matches = Match.query.filter_by(tournament_id=self.id)
+        if latest_phase:
+            for x in range(1, latest_phase + 1):
+                phases.append(list(matches.filter_by(phase=x)))
+        return phases
+
+    # def check_if_freilos_is_needed_and_return_count(self):
+    #     count = 0
+    #     if self.modus == "Swiss":
+    #         if len(self.teams) % 2 == 0:
+    #             return
+    #         else:
+    #             count = 1
+    #     elif self.modus == "KO":
+    #         count_of_teams = len(self.teams)
+    #         if count_of_teams > 32:
+    #             count = 0
+    #         else:
+    #             count = 32 - count_of_teams
+    #     return count
 
 
 class Team(db.Model):
@@ -372,24 +416,34 @@ class Team(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     create_time = db.Column('last_updated', db.DateTime, onupdate=datetime.now)
     tournament_id = db.Column(db.Integer, db.ForeignKey('tournament.id'))
-    points = db.Column(db.Integer, default=0)
+    points = db.Column(db.Float, default=0.0)
     history = db.Column(db.String(120))
     players = db.relationship("Player",
                               secondary=association_table, backref="team")
+    buchholz1 = db.Column(db.Float, default=0.0)
+    buchholz2 = db.Column(db.Float, default=0.0)
+    ranking = db.Column(db.Integer, default=0)
 
     def __repr__(self):
             return '<Team: %d>' % (self.id)
 
+    def toString(self):
+        return "/".join(player.name for player in self.players)
+
     def to_json(self):
         json_team = {
-            'url': url_for('api.get_team', id=self.id, _external=True),
+            'url': url_for('api.get_team_of_tournament', team_id=self.id,
+                           tournament_id=self.tournament_id, _external=True),
             'id': self.id,
             'players': [player.to_json() for player in self.players],
             'tournament_id': self.tournament_id,
             'history': self.history,
-            'points': self.points,
+            'points': self.points
         }
         return json_team
+
+    def check_if_player_in_team(self, player):
+        return True if player in self.players else False
 
 
 class Match(db.Model):
@@ -403,23 +457,84 @@ class Match(db.Model):
     sets = db.relationship("Set", backref="match", lazy='dynamic')
     tournament_id = db.Column(db.Integer, db.ForeignKey('tournament.id'))
     phase = db.Column(db.Integer, default=0)
-    over = db.Column(db.Boolean)
+    over = db.Column(db.Boolean, default=False)
+    winner = db.Column(db.String, default=0)
 
     def __repr__(self):
         return '<Game %d went >' % (self.id)
 
     def to_json(self):
         json_match = {
-            'url': url_for('api.get_match', match_id=self.id, _external=True),
+            'url': url_for('api.get_match', tournament_id=self.tournament_id,
+                           match_id=self.id, _external=True),
             'id': self.id,
-            'team_a': self.team_a,
-            'team_b': self.team_b,
+            'team_a': Team.query.filter_by(id=self.team_a).first().to_json(),
+            'team_b': Team.query.filter_by(id=self.team_a).first().to_json(),
             'sets': [set.to_json() for set in self.sets.all()],
             'tournament_id': self.tournament_id,
             'phase': self.phase,
             'over': self.over
         }
         return json_match
+
+    def finish(self):
+        # If alreasy done then clause, set around over-flag
+        # TODO in match auslagern
+        match = Match.query.filter_by(id=self.id).first()
+        team_a = Team.query.filter_by(id=self.team_a).first()
+        team_b = Team.query.filter_by(id=self.team_b).first()
+        if match.over:
+            return
+        set_count = Tournament.query.filter_by(
+            id=match.tournament_id).first().set_count
+        team_a_sets = 0
+        for set in self.sets:
+            if set.score_a >= 5:
+                team_a_sets += 1
+        team_b_sets = len(self.sets.all()) - team_a_sets
+
+        if team_a_sets == set_count or team_b_sets == set_count:
+            match.over = True
+            team_a.history = ('' if not team_a.history else
+                              team_a.history + ",") + str(
+                              team_b.id)
+
+            team_b.history = ('' if not team_b.history else
+                              team_b.history + ",") + str(
+                              team_a.id)
+
+            if team_a_sets == set_count:
+                team_a.points = (0 if not team_a.points else
+                                 team_a.points) + 1
+                self.winner = "a"
+            else:
+                team_b.points = (0 if not team_b.points
+                                 else team_b.points) + 1
+                self.winner = "b"
+        db.session.commit()
+
+    def set_win_against_freilos(self):
+        if not (self.team_a.name == "Freilos" or
+                self.team_b.name == "Freilos"):
+            return
+        else:
+            if self.team_a.name == "Freilos":
+                self.sets.append(Set(score_a=0, score_b=1))
+            else:
+                self.sets.append(Set(score_a=1, score_b=0))
+            self.over = True
+            db.session.add(self)
+            db.session.commit()
+
+    def get_winner_of_match(self):
+        match = Match.query.filter_by(id=self.id).first()
+        winner = None
+        if match.over:
+            if self.winner is "a":
+                winner = Team.query.filter_by(id=self.team_a).first()
+            else:
+                winner = Team.query.filter_by(id=self.team_b).first()
+        return winner
 
 
 class Set(db.Model):
@@ -432,14 +547,18 @@ class Set(db.Model):
 
     @staticmethod
     def check_if_match_exists(match_id):
-        return True if Match.query.filter_by(id=match_id).count() == 1 else False
+        return True if Match.query.filter_by(
+            id=match_id).count() == 1 else False
 
     def __repr__(self):
-        return '<Set %d>' % (self.id)
+        return ' %d : %d' % (self.score_a, self.score_b)
 
     def to_json(self):
         json_match = {
-            'url': url_for('api.get_set_of_match', match_id=self.match_id, set_id=self.id, _external=True),
+            'url': url_for('api.get_set_of_match',
+                           tournament_id=self.get_tournament_of_set(),
+                           match_id=self.match_id,
+                           set_id=self.id, _external=True),
             'id': self.id,
             'score_a': self.score_a,
             'score_b': self.score_b,
@@ -452,9 +571,11 @@ class Set(db.Model):
         score_b = json_post.get('score_b')
         if Set.check_if_match_exists(match_id) is False:
             raise ValidationError('')
-        highest_id = db.session.query(func.max(Set.id).label('max_id')).one()[0]
-        return Set(id=highest_id + 1, score_a=score_a, score_b=score_b, match_id=match_id)
+        highest_id = db.session.query(
+            func.max(Set.id).label('max_id')).one()[0]
+        return Set(id=highest_id + 1, score_a=score_a,
+                   score_b=score_b, match_id=match_id)
 
-
-if enable_search:
-    whooshalchemy.whoosh_index(app, Player)
+    def get_tournament_of_set(self):
+        match = Match.query.filter_by(id=self.match_id).first()
+        return match.tournament_id

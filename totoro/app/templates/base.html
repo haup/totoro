@@ -22,12 +22,10 @@
         </div>
         <div class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
-                <li><a href="{{ url_for('main.index') }}">Home</a></li>
                 {% if current_user.is_authenticated %}
-                <li><a href="{{ url_for('main.user', username=current_user.username) }}">Profile</a></li>
-                <li><a href="{{ url_for('main.list_players') }}">Players</a></li>
-                <li><a href="{{ url_for('main.list_teams') }}">Teams</a></li>
                 <li><a href="{{ url_for('main.list_tournaments') }}">Tournaments</a></li>
+                <li><a href="{{ url_for('main.list_players') }}">Players</a></li>
+                <li><a href="{{ url_for('main.user', username=current_user.username) }}">Profile</a></li>
                 {% endif %}
             </ul>
             <ul class="nav navbar-nav navbar-right">

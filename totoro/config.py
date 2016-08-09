@@ -15,8 +15,6 @@ class Config(object):
     TOTORO_MAIL_SUBJECT_PREFIX = '[Totoro]'
     TOTORO_MAIL_SENDER = 'Admin <totoro@shibuja.jp>'
     TOTORO_ADMIN = os.environ.get('TOTORO_ADMIN')
-    WHOOSH_BASE = os.path.join(basedir, 'search.db')
-    MAX_SEARCH_RESULTS = 50
 
     @staticmethod
     def init_app(app):

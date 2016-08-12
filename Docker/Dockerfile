@@ -20,9 +20,7 @@ RUN apt-get install -y python3 python3-dev python3-setuptools python3-pip libpq-
 
 # Copy the application folder inside the container
 RUN cd /
-Run git clone https://github.com/haup/totoro.git
-
-RUN cd totoro && git checkout deploy
+Run git clone -b deploy --single-branch https://github.com/haup/totoro.git
 
 # Get pip to download and install requirements:
 RUN pip3 install -r /totoro/totoro/requirements.txt

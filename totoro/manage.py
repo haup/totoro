@@ -36,7 +36,7 @@ def test():
 def upgrade():
     """Run deployment tasks."""
     from flask.ext.migrate import upgrade
-    from app.models import Player, Team
+    from app.models import Player, Team, Set, Match, Tournament
 
     # migrate database to latest revision
     upgrade()

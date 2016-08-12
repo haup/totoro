@@ -22,7 +22,16 @@ class Config(object):
 
 
 class ProductionConfig(Config):
-    DEBUG = True
+    DEBUG = False
+    pg_db_username = 'totoro'
+    pg_db_password = 'totoro'
+    pg_db_name = 'totoro'
+    pg_db_hostname = 'db'
+    SQLALCHEMY_MIGRATE_REPO = os.path.join(basedir, 'db_repository')
+    SQLALCHEMY_DATABASE_URI = "postgresql://{DB_USER}:{DB_PASS}@{DB_ADDR}/{DB_NAME}".format(DB_USER=pg_db_username,
+                                                                                            DB_PASS=pg_db_password,
+                                                                                            DB_ADDR=pg_db_hostname,
+                                                                                            DB_NAME=pg_db_name)
 
 
 class StagingConfig(Config):

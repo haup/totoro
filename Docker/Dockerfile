@@ -4,14 +4,10 @@
 ############################################################
 
 # Set the base image to Ubuntu
-FROM ubuntu
+FROM ubuntu:xenial
 
 # File Author / Maintainer
 MAINTAINER Tim Unkrig
-
-# Add the application resources URL
-RUN echo "deb http://archive.ubuntu.com/ubuntu/ $(lsb_release -sc) main universe" >> 
-/etc/apt/sources.list
 
 # Update the sources list
 RUN apt-get update
@@ -20,13 +16,16 @@ RUN apt-get update
 RUN apt-get install -y tar git curl nano wget dialog net-tools build-essential
 
 # Install Python and Basic Python Tools
-RUN apt-get install -y python3 python3-dev python3-distribute python3-pip
+RUN apt-get install -y python3 python3-dev python3-setuptools python3-pip libpq-dev
 
 # Copy the application folder inside the container
-ADD /home/tim/Coding/totoro /totoro
+RUN cd /
+Run git clone https://github.com/haup/totoro.git
+
+RUN cd totoro && git checkout deploy
 
 # Get pip to download and install requirements:
-RUN pip install -r /totoro/requirements.txt
+RUN pip3 install -r /totoro/totoro/requirements.txt
 
 # Expose ports
 EXPOSE 80
@@ -34,7 +33,4 @@ EXPOSE 80
 # Set the default directory where CMD will execute
 WORKDIR /totoro/totoro
 
-# Set the default command to execute    
-# when creating a new container
-# i.e. using CherryPy to serve the application
 CMD python manage.py runserver

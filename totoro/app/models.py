@@ -7,7 +7,6 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask_login import UserMixin, AnonymousUserMixin
 from random import shuffle
 import hashlib
-import app, sys
 
 from datetime import datetime
 from . import db, login_manager
@@ -46,7 +45,7 @@ class Role(db.Model):
 
 
 class User(UserMixin, db.Model):
-    __tablename__ = "users"
+    __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True)
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
@@ -192,7 +191,7 @@ association_table = db.Table('player_team',
 
 class Player(db.Model):
 
-    """Class Player"""
+    '''Class Player'''
 
     __tablename__ = 'player'
     __searchable__ = ['name']
@@ -222,14 +221,14 @@ class Player(db.Model):
 
 class Tournament(db.Model):
 
-    """Class Tournament"""
+    '''Class Tournament'''
 
     __tablename__ = 'tournament'
     id = db.Column(db.Integer, primary_key=True, unique=True)
     name = db.Column(db.String(120), nullable=False)
     modus = db.Column(db.String(120), nullable=False)
     set_count = db.Column(db.Integer)
-    teams = db.relationship("Team", backref="tournament", lazy='dynamic')
+    teams = db.relationship('Team', backref='tournament', lazy='dynamic')
     parent = db.Column(db.Integer)
     max_phase = db.Column(db.Integer)
     over = db.Column(db.Boolean)
@@ -238,7 +237,7 @@ class Tournament(db.Model):
             return '<Tournament: %d>' % (self.id)
 
     def shuffle_initial_ranking(self):
-        if self.modus == "Swiss":
+        if self.modus == 'Swiss':
             teams = Team.query.filter_by(tournament_id=self.id).all()
             if all(team.ranking == 0 for team in teams):
                 shuffle(teams)
@@ -247,7 +246,7 @@ class Tournament(db.Model):
                     db.session.add(team)
                 db.session.commit()
         else:
-            print("Tournament is not Swiss System")
+            print('Tournament is not Swiss System')
 
     def set_ranking(self):
         teams = list(Team.query.filter_by(tournament_id=self.id).all())
@@ -321,7 +320,7 @@ class Tournament(db.Model):
             ko = [1, 8, 5, 4, 3, 6, 7, 2]
         if len(self.teams.all()) == 16:
             ko = [1, 16, 9, 8, 5, 12, 13, 4,
-                  3, 14, 11, 6, 7, 10, 2, 15]
+                  3, 14, 11, 6, 7, 10, 15, 2]
         for count, team in enumerate(self.teams.all()):
             team.ranking = ko[count]
         db.session.add(self)
@@ -342,7 +341,7 @@ class Tournament(db.Model):
         db.session.commit()
 
     def draw_next_ko_round(self):
-        if self.modus == "KO":
+        if self.modus == 'KO':
             winner = []
             latest_phase = self.get_latest_phase_of_tournament()
             matches = Match.query.filter_by(tournament_id=self.id,
@@ -357,7 +356,7 @@ class Tournament(db.Model):
                                   tournament_id=self.id, phase=latest_phase+1)
                     db.session.add(match)
             else:
-                return "Round is not over"
+                return 'Round is not over'
         db.session.commit()
 
     @staticmethod
@@ -395,12 +394,12 @@ class Tournament(db.Model):
 
     # def check_if_freilos_is_needed_and_return_count(self):
     #     count = 0
-    #     if self.modus == "Swiss":
+    #     if self.modus == 'Swiss':
     #         if len(self.teams) % 2 == 0:
     #             return
     #         else:
     #             count = 1
-    #     elif self.modus == "KO":
+    #     elif self.modus == 'KO':
     #         count_of_teams = len(self.teams)
     #         if count_of_teams > 32:
     #             count = 0
@@ -410,7 +409,7 @@ class Tournament(db.Model):
 
 
 class Team(db.Model):
-    """Class Team"""
+    '''Class Team'''
 
     __tablename__ = 'team'
     id = db.Column(db.Integer, primary_key=True)
@@ -418,8 +417,8 @@ class Team(db.Model):
     tournament_id = db.Column(db.Integer, db.ForeignKey('tournament.id'))
     points = db.Column(db.Float, default=0.0)
     history = db.Column(db.String(120))
-    players = db.relationship("Player",
-                              secondary=association_table, backref="team")
+    players = db.relationship('Player',
+                              secondary=association_table, backref='team')
     buchholz1 = db.Column(db.Float, default=0.0)
     buchholz2 = db.Column(db.Float, default=0.0)
     ranking = db.Column(db.Integer, default=0)
@@ -428,7 +427,7 @@ class Team(db.Model):
             return '<Team: %d>' % (self.id)
 
     def toString(self):
-        return "/".join(player.name for player in self.players)
+        return '/'.join(player.name for player in self.players)
 
     def to_json(self):
         json_team = {
@@ -448,13 +447,13 @@ class Team(db.Model):
 
 class Match(db.Model):
 
-    """docstring for Games"""
+    '''docstring for Games'''
 
     __tablename__ = 'matches'
     id = db.Column(db.Integer, primary_key=True)
     team_a = db.Column(db.Integer, db.ForeignKey('team.id'))
     team_b = db.Column(db.Integer, db.ForeignKey('team.id'))
-    sets = db.relationship("Set", backref="match", lazy='dynamic')
+    sets = db.relationship('Set', backref='match', lazy='dynamic')
     tournament_id = db.Column(db.Integer, db.ForeignKey('tournament.id'))
     phase = db.Column(db.Integer, default=0)
     over = db.Column(db.Boolean, default=False)
@@ -480,45 +479,45 @@ class Match(db.Model):
     def finish(self):
         # If alreasy done then clause, set around over-flag
         # TODO in match auslagern
-        match = Match.query.filter_by(id=self.id).first()
+        # match = Match.query.filter_by(id=self.id).first()
         team_a = Team.query.filter_by(id=self.team_a).first()
         team_b = Team.query.filter_by(id=self.team_b).first()
-        if match.over:
+        if self.over:
             return
         set_count = Tournament.query.filter_by(
-            id=match.tournament_id).first().set_count
+            id=self.tournament_id).first().set_count
         team_a_sets = 0
         for set in self.sets:
-            if set.score_a >= 5:
+            if set.score_a >= 5 and set.score_a > set.score_b:
                 team_a_sets += 1
         team_b_sets = len(self.sets.all()) - team_a_sets
 
         if team_a_sets == set_count or team_b_sets == set_count:
-            match.over = True
+            self.over = True
             team_a.history = ('' if not team_a.history else
-                              team_a.history + ",") + str(
+                              team_a.history + ',') + str(
                               team_b.id)
 
             team_b.history = ('' if not team_b.history else
-                              team_b.history + ",") + str(
+                              team_b.history + ',') + str(
                               team_a.id)
 
             if team_a_sets == set_count:
                 team_a.points = (0 if not team_a.points else
                                  team_a.points) + 1
-                self.winner = "a"
+                self.winner = 'a'
             else:
                 team_b.points = (0 if not team_b.points
                                  else team_b.points) + 1
-                self.winner = "b"
+                self.winner = 'b'
         db.session.commit()
 
     def set_win_against_freilos(self):
-        if not (self.team_a.name == "Freilos" or
-                self.team_b.name == "Freilos"):
+        if not (self.team_a.name == 'Freilos' or
+                self.team_b.name == 'Freilos'):
             return
         else:
-            if self.team_a.name == "Freilos":
+            if self.team_a.name == 'Freilos':
                 self.sets.append(Set(score_a=0, score_b=1))
             else:
                 self.sets.append(Set(score_a=1, score_b=0))
@@ -530,7 +529,7 @@ class Match(db.Model):
         match = Match.query.filter_by(id=self.id).first()
         winner = None
         if match.over:
-            if self.winner is "a":
+            if self.winner is 'a':
                 winner = Team.query.filter_by(id=self.team_a).first()
             else:
                 winner = Team.query.filter_by(id=self.team_b).first()

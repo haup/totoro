@@ -8,7 +8,6 @@ from ..models import Tournament, Team, Permission, Match, Set
 @api.route('/tournaments')
 @permission_required(Permission.SET)
 def get_tournaments():
-
     """ This function queries all tournaments
         from the database and returns it as json
         It is annotated with the route Decorator
@@ -22,7 +21,6 @@ def get_tournaments():
 @api.route('/tournaments/<int:id>')
 @permission_required(Permission.SET)
 def get_tournament(id):
-
     """ This function queries a specific tournament
         from the database and returns it as json
         It is annotated with the route Decorator
@@ -36,7 +34,6 @@ def get_tournament(id):
 @api.route('/tournaments/<int:id>/teams', methods=['GET'])
 @permission_required(Permission.SET)
 def get_teams_of_tournaments(id):
-
     """ This function queries all teams of a specific tournament
         from the database and returns it as json
         It is annotated with the route Decorator
@@ -59,10 +56,10 @@ def get_team_of_tournament(tournament_id, team_id):
     team = Team.query.filter_by(id=team_id).one()
     return jsonify(team.to_json())
 
+
 @api.route('/tournaments/<int:tournament_id>/matches', methods=["GET"])
 @permission_required(Permission.SET)
 def get_matches(tournament_id):
-
     """ This function queries all matches from the database and returns it as json
         It is annotated with the route decorator for
         representing an endpoint of the API
@@ -75,7 +72,6 @@ def get_matches(tournament_id):
 @api.route('/tournaments/<int:tournament_id>/matches/<int:match_id>', methods=["GET"])
 @permission_required(Permission.SET)
 def get_match(tournament_id, match_id):
-
     """ This function queries a specific match
         from the database and returns it as json
         It is annotated with the route Annotation
@@ -90,7 +86,6 @@ def get_match(tournament_id, match_id):
 @api.route('/tournaments/<int:tournament_id>/matches/<int:match_id>/sets', methods=['GET'])
 @permission_required(Permission.SET)
 def get_sets_of_match(tournament_id, match_id):
-
     """ This function queries all sets of
         a specific match from the database and returns it as json
         It is annotated with the route Annotation
@@ -105,7 +100,6 @@ def get_sets_of_match(tournament_id, match_id):
 @api.route('/tournaments/<int:tournament_id>/matches/<int:match_id>/sets/<int:set_id>', methods=['GET'])
 @permission_required(Permission.SET)
 def get_set_of_match(tournament_id, match_id, set_id):
-
     """ This function queries a specific set of a specific match
         from the database and returns it as json
         It is annotated with the route Annotation
@@ -120,7 +114,6 @@ def get_set_of_match(tournament_id, match_id, set_id):
 
 @api.route('/tournaments/<int:tournament_id>/matches/<int:match_id>/sets', methods=['POST'])
 def create_set_of_match(tournament_id, match_id):
-
     """ This function gets a set of a specific match as json and
         makes an entry in the database for that and
         returns a successful statuscode as response in json
@@ -141,17 +134,16 @@ def create_set_of_match(tournament_id, match_id):
     else:
         if tournament.check_is_tournament_finishable():
             tournament.over = True
-        elif tournament.check_is_phase_finishable():
+        elif tournament.check_is_phase_finishableshable():
             tournament.draw_round()
     return jsonify(set.to_json()), 201, {'url': url_for('api.get_set_of_match',
-                                         tournament_id=tournament_id, set_id=set.id,
-                                         match_id=match_id)}
+                                                        tournament_id=tournament_id, set_id=set.id,
+                                                        match_id=match_id)}
 
 
 @api.route('/tournaments/<int:tournament_id>/matches/<int:match_id>/sets/<int:set_id>', methods=['PUT'])
 @permission_required(Permission.SET)
 def update_set_of_match(tournament_id, match_id, set_id):
-
     """ This function gets a set of a specific match as json and
         persists the change in the database.
         It returns a successful statuscode as response in json
@@ -167,4 +159,4 @@ def update_set_of_match(tournament_id, match_id, set_id):
         db.session.add(actual_set)
         db.session.commit()
     return jsonify(set.to_json()), 200, {'url': url_for('api.get_set_of_match',
-                                         set_id=set.id, match_id=match_id)}
+                                                        set_id=set.id, match_id=match_id)}

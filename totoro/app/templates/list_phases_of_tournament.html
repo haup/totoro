@@ -20,6 +20,15 @@
             </ul>
         </li>
         {% endfor %}
-        </ul>
+    </ul>
     {% endfor %}
+    <h2>Ranking</h2>
+    <ul class="list-group">
+        {% for team in tournament.get_ranking() %}
+        <h4>Team {{loop.index}}</h3>
+        <li class="list-group-item clearfix" font-size="200%">
+           Points: {{  team.points }} BH1: {{  team.buchholz1}} BH2: {{ team.buchholz2}}
+        </li>
+        {% endfor %}
+    </ul>
 {% endblock %}

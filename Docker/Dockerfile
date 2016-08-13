@@ -26,7 +26,7 @@ Run git clone -b deploy --single-branch https://github.com/haup/totoro.git
 RUN pip3 install -r /totoro/totoro/requirements.txt
 
 # Expose ports
-EXPOSE 80
+EXPOSE 8080
 
 # Set the default directory where CMD will execute
 WORKDIR /totoro/totoro

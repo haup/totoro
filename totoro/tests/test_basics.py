@@ -22,27 +22,27 @@ class BasicsTestCase(unittest.TestCase):
         self.assertTrue(current_app.config['TESTING'])
 
     def test_create_player(self):
-        player = Player(id=1, name="Tim", email="tunkrig@posteo.de")
+        player = Player(id=1, name='Tim', email='tunkrig@posteo.de')
         db.session.add(player)
         db.session.commit()
         print(player)
-        return_player = Player.query.filter_by(name="Tim").one()
+        return_player = Player.query.filter_by(name='Tim').one()
         print(return_player)
         self.assertTrue(player is return_player)
 
     def test_compare_player_with_wrong_request(self):
-        player = Player(id=1, name="Tim", email="tunkrig@posteo.de")
+        player = Player(id=1, name='Tim', email='tunkrig@posteo.de')
         db.session.add(player)
         db.session.commit()
         print(player)
-        return_player = Player.query.filter_by(name="test").first()
+        return_player = Player.query.filter_by(name='test').first()
         print(return_player)
         self.assertFalse(player is return_player)
 
 
     def test_create_team(self):
-        player_a = Player(name="Test", email="test1@test.de")
-        player_b = Player(name="Test2", email="test2@test.de")
+        player_a = Player(name='Test', email='test1@test.de')
+        player_b = Player(name='Test2', email='test2@test.de')
         team = Team(id=1, points=0.0, buchholz1=0.0, buchholz2=0.0, ranking=0)
         team.players.append(player_a)
         team.players.append(player_b)
@@ -52,8 +52,8 @@ class BasicsTestCase(unittest.TestCase):
         self.assertTrue(team is db_team)
 
     def test_compare_team_with_wrong_request(self):
-        player_a = Player(name="Test", email="test1@test.de")
-        player_b = Player(name="Test2", email="test2@test.de")
+        player_a = Player(name='Test', email='test1@test.de')
+        player_b = Player(name='Test2', email='test2@test.de')
         team = Team(id=1, points=0.0, buchholz1=0.0, buchholz2=0.0, ranking=0)
         team.players.append(player_a)
         team.players.append(player_b)
@@ -63,24 +63,24 @@ class BasicsTestCase(unittest.TestCase):
         self.assertFalse(team is db_team)
 
     def test_create_tournament(self):
-        tournament = Tournament(id=1, name="testTournament", modus="Swiss")
+        tournament = Tournament(id=1, name='testTournament', modus='Swiss')
         db.session.add(tournament)
         db.session.commit()
         db_tournament = Tournament.query.filter_by(id=1).one()
         self.assertTrue(tournament is db_tournament)
 
     def test_compare_tournament_with_wrong_test(self):
-        tournament = Tournament(id=1, name="testTournament", modus="Swiss")
+        tournament = Tournament(id=1, name='testTournament', modus='Swiss')
         db.session.add(tournament)
         db.session.commit()
         db_tournament = Tournament.query.filter_by(id=9).first()
         self.assertFalse(tournament is db_tournament)
 
     def test_create_match(self):
-        player_a_1 = Player(name="Test", email="test1@test.de")
-        player_b_1 = Player(name="Test2", email="test2@test.de")
-        player_a_2 = Player(name="Test3", email="test3@test.de")
-        player_b_2 = Player(name="Test4", email="test4@test.de")
+        player_a_1 = Player(name='Test', email='test1@test.de')
+        player_b_1 = Player(name='Test2', email='test2@test.de')
+        player_a_2 = Player(name='Test3', email='test3@test.de')
+        player_b_2 = Player(name='Test4', email='test4@test.de')
         team_a = Team()
         team_b = Team()
         team_a.players.append(player_a_1)
@@ -96,10 +96,10 @@ class BasicsTestCase(unittest.TestCase):
         self.assertTrue(match is db_match)
 
     def test_compare_match_with_wrong_request(self):
-        player_a_1 = Player(name="Test", email="test1@test.de")
-        player_b_1 = Player(name="Test2", email="test2@test.de")
-        player_a_2 = Player(name="Test3", email="test3@test.de")
-        player_b_2 = Player(name="Test4", email="test4@test.de")
+        player_a_1 = Player(name='Test', email='test1@test.de')
+        player_b_1 = Player(name='Test2', email='test2@test.de')
+        player_a_2 = Player(name='Test3', email='test3@test.de')
+        player_b_2 = Player(name='Test4', email='test4@test.de')
         team_a = Team()
         team_b = Team()
         team_a.players.append(player_a_1)
@@ -115,10 +115,10 @@ class BasicsTestCase(unittest.TestCase):
         self.assertFalse(match is db_match)
 
     def test_create_set(self):
-        player_a_1 = Player(name="Test", email="test1@test.de")
-        player_b_1 = Player(name="Test2", email="test2@test.de")
-        player_a_2 = Player(name="Test3", email="test3@test.de")
-        player_b_2 = Player(name="Test4", email="test4@test.de")
+        player_a_1 = Player(name='Test', email='test1@test.de')
+        player_b_1 = Player(name='Test2', email='test2@test.de')
+        player_a_2 = Player(name='Test3', email='test3@test.de')
+        player_b_2 = Player(name='Test4', email='test4@test.de')
         team_a = Team()
         team_b = Team()
         team_a.players.append(player_a_1)

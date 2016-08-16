@@ -3,6 +3,10 @@ from flask import current_app, render_template
 from flask_mail import Message
 from . import mail
 
+# This package is taken from the https://github.com/miguelgrinberg/flasky,
+# its mail implementation for a flask application fits
+# every aspect for building a valid prototype.
+
 
 def send_async_email(app, msg):
     with app.app_context():

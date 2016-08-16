@@ -10,10 +10,6 @@ from .forms import LoginForm, RegistrationForm, ChangePasswordForm,\
 
 @auth.before_app_request
 def before_request():
-
-    """ This function checks if the current user is authenticated.
-        If not a redirection is enabled to the unconfirmed funtion.
-    """
     if current_user.is_authenticated:
         current_user.ping()
         if not current_user.confirmed \
@@ -24,10 +20,6 @@ def before_request():
 
 @auth.route('/unconfirmed')
 def unconfirmed():
-
-    """ This function checks if the current user is confirmed.
-        If so the user is beeing redirected to the main page.
-    """
     if current_user.is_anonymous or current_user.confirmed:
         return redirect(url_for('main.index'))
     return render_template('auth/unconfirmed.html')
@@ -35,11 +27,6 @@ def unconfirmed():
 
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
-
-    """ This function logs a user in.
-        The user has to put in email and password for authentification
-
-    """
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
@@ -60,7 +47,6 @@ def logout():
 
 @auth.route('/register', methods=['GET', 'POST'])
 def register():
-
     form = RegistrationForm()
     if form.validate_on_submit():
         user = User(email=form.email.data,
@@ -110,7 +96,7 @@ def change_password():
             return redirect(url_for('main.index'))
         else:
             flash('Invalid password.')
-    return render_template("auth/change_password.html", form=form)
+    return render_template('auth/change_password.html', form=form)
 
 
 @auth.route('/reset', methods=['GET', 'POST'])
@@ -165,7 +151,7 @@ def change_email_request():
             return redirect(url_for('main.index'))
         else:
             flash('Invalid email or password.')
-    return render_template("auth/change_email.html", form=form)
+    return render_template('auth/change_email.html', form=form)
 
 
 @auth.route('/change-email/<token>')

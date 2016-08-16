@@ -6,7 +6,7 @@
 # from flask_login import login_required
 
 
-# @api.route('/matches', methods=["GET"])
+# @api.route('/matches', methods=['GET'])
 # @permission_required(Permission.SET)
 # def get_matches():
 
@@ -19,7 +19,7 @@
 #     return jsonify([match.to_json() for match in matches])
 
 
-# @api.route('/matches/<int:match_id>', methods=["GET"])
+# @api.route('/matches/<int:match_id>', methods=['GET'])
 # @permission_required(Permission.SET)
 # def get_match(match_id):
 
@@ -82,7 +82,7 @@
 #     match = Match.query.filter_by(id=match_id).one()
 #     tournament = Tournament.query.filter_by(id=match.tournament_id).one()
 #     match.finish()
-#     if tournament.modus == "KO":
+#     if tournament.modus == 'KO':
 #         if tournament.check_is_phase_finishable():
 #             tournament.draw_next_ko_round()
 #     else:

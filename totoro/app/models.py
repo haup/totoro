@@ -7,7 +7,6 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask_login import UserMixin, AnonymousUserMixin
 from random import shuffle
 import hashlib
-
 from datetime import datetime
 from . import db, login_manager
 
@@ -15,10 +14,14 @@ Base = declarative_base()
 
 
 class Permission:
+    """ Enumaration for Permission Control"""
     SET = 0x04
 
 
 class Role(db.Model):
+    """ This class represents a role in the system,
+        this class is based on the https://github.com/miguelgrinberg/flasky
+    """
     __tablename__ = 'roles'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), unique=True)
@@ -28,6 +31,7 @@ class Role(db.Model):
 
     @staticmethod
     def insert_roles():
+        """ This function inserts the roles into the database"""
         roles = {
             'User': (Permission.SET, True),
         }
@@ -41,10 +45,13 @@ class Role(db.Model):
         db.session.commit()
 
     def __repr__(self):
-        return '<Role %r>' % self.name
+        return '%r' % self.name
 
 
 class User(UserMixin, db.Model):
+    """ This class represents a user in the system,
+        this class is based on the https://github.com/miguelgrinberg/flasky
+    """
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True)
@@ -57,7 +64,7 @@ class User(UserMixin, db.Model):
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
 
     def __repr__(self):
-        return '<User %r>' % self.username
+        return '%r' % self.username
 
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
@@ -170,6 +177,9 @@ class User(UserMixin, db.Model):
 
 
 class AnonymousUser(AnonymousUserMixin):
+    """ This class represents an anonymous user in the system,
+        this class is based on the https://github.com/miguelgrinberg/flasky
+    """
     def can(self, permissions):
         return False
 
@@ -190,11 +200,10 @@ association_table = db.Table('player_team',
 
 
 class Player(db.Model):
-
-    '''Class Player'''
-
+    """ This class represents a player in the system.
+        A player is a sustainable ressource, which suprasses a tournament.
+    """
     __tablename__ = 'player'
-    __searchable__ = ['name']
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(120), index=True, unique=True)
@@ -203,6 +212,9 @@ class Player(db.Model):
         return '%r' % (self.name)
 
     def to_json(self):
+        """ This methode returns the attributes
+            of an instance of the class player as a list.
+        """
         json_player = {
             'url': url_for('api.get_player', id=self.id, _external=True),
             'id': self.id,
@@ -212,6 +224,9 @@ class Player(db.Model):
         return json_player
 
     def from_json(json_post):
+        """ This methode instanciate the object
+            of the class player from a list.
+        """
         name = json_post.get('name')
         email = json_post.get('email')
         if name is None or email is None:
@@ -221,8 +236,11 @@ class Player(db.Model):
 
 class Tournament(db.Model):
 
-    '''Class Tournament'''
-
+    """ This class represents a foosbal tournament in the system.
+        A tournament is a competitive event,
+        where teams are competing each other
+        to detect the best team around
+    """
     __tablename__ = 'tournament'
     id = db.Column(db.Integer, primary_key=True, unique=True)
     name = db.Column(db.String(120), nullable=False)
@@ -234,9 +252,13 @@ class Tournament(db.Model):
     over = db.Column(db.Boolean)
 
     def __repr__(self):
-            return '<Tournament: %d>' % (self.id)
+            return '%r' % (self.name)
 
     def shuffle_initial_ranking(self):
+        """ This method is shuffling a initial ranking
+            before the tournament has started.
+            that the first matches are completely random.
+        """
         if self.modus == 'Swiss':
             teams = Team.query.filter_by(tournament_id=self.id).all()
             if all(team.ranking == 0 for team in teams):
@@ -249,6 +271,9 @@ class Tournament(db.Model):
             print('Tournament is not Swiss System')
 
     def set_ranking(self):
+        """ This method sets a generate ranking
+            out of the played matches of a phase.
+        """
         teams = list(Team.query.filter_by(tournament_id=self.id).all())
         for team in teams:
             team.buchholz1 = Tournament.calculate_buchholz1(team)
@@ -261,15 +286,24 @@ class Tournament(db.Model):
         db.session.commit()
 
     def get_ranking(self):
+        """ This method returns the actual ranking
+            out the database.
+        """
         teams = list(Team.query.filter_by(tournament_id=self.id).all())
         return sorted(teams, key=lambda x: (x.ranking))
 
     def get_latest_phase_of_tournament(self):
+        """ This helper method returns the latest phase
+            of a tournament.
+        """
         phase = db.session.query(func.max(Match.phase)).filter_by(
             tournament_id=self.id).one()[0]
         return phase if phase else 0
 
     def draw_round(self):
+        """ This method draws a next phase of the tournament.
+            It commits the drawed matches into the database.
+        """
         phase = self.get_latest_phase_of_tournament()
         used = []
         teams = self.get_ranking()
@@ -287,16 +321,27 @@ class Tournament(db.Model):
         db.session.commit()
 
     def check_is_phase_finishable(self):
+        """ This method checks if a phase is over or not.
+            @Return: True if phase is over else False
+        """
         latest_phase = self.get_latest_phase_of_tournament()
         matches_of_phase = Match.query.filter_by(tournament_id=self.id,
                                                  phase=latest_phase).all()
         return all(match.over for match in matches_of_phase)
 
     def check_is_tournament_finishable(self):
+        """ This method checks if a tournament is over or not.
+            @Return: True if tournament is over else False
+        """
         latest_phase = self.get_latest_phase_of_tournament()
         return True if latest_phase == self.max_phase else False
 
     def to_json(self):
+        """ This methode returns all of the attributes
+            of an instance of the class tournament as a list,
+            prepared to convert to JSON.
+            @Return: list of attributes
+        """
         json_tournament = {
             'url': url_for('api.get_tournament', id=self.id, _external=True),
             'id': self.id,
@@ -310,12 +355,18 @@ class Tournament(db.Model):
         return json_tournament
 
     def get_teams_from_other_tournament(self, teams):
+        """ This method takes all the teams of another tournament.
+            And puts them into this instance of the class tournament.
+        """
         for team in teams:
             t = Team()
             t.players = team.players
             self.teams.append(t)
 
     def set_initial_ko_ranking(self):
+        """ This method sets the initial ranking
+            for a ko phase.
+        """
         if len(self.teams.all()) == 8:
             ko = [1, 8, 5, 4, 3, 6, 7, 2]
         if len(self.teams.all()) == 16:
@@ -327,6 +378,9 @@ class Tournament(db.Model):
         db.session.commit()
 
     def set_initial_ko_matches(self):
+        """ This method sets the first ko phase
+            out of the ranking.
+        """
         if len(self.teams.all()) == 8:
             ko = [1, 8, 5, 4, 3, 6, 7, 2]
         if len(self.teams.all()) == 16:
@@ -341,6 +395,9 @@ class Tournament(db.Model):
         db.session.commit()
 
     def draw_next_ko_round(self):
+        """ This method draws a second and all followed ko phases
+            of a tournament.
+        """
         if self.modus == 'KO':
             winner = []
             latest_phase = self.get_latest_phase_of_tournament()
@@ -361,6 +418,10 @@ class Tournament(db.Model):
 
     @staticmethod
     def calculate_buchholz1(team):
+        """ This static helper function
+            calculates the buchholz number of an specific team.
+            @Return: buchholz number of team
+        """
         buchholz1 = 0
         for opponent in team.history.split(','):
             buchholz1 += Team.query.filter_by(id=opponent).first().points
@@ -368,6 +429,10 @@ class Tournament(db.Model):
 
     @staticmethod
     def calculate_buchholz2(team):
+        """ This static helper function
+            calculates the fine buchholz number of an specific team.
+            @Return: buchholz number of team
+        """
         buchholz2 = 0
         for opponent in team.history.split(','):
             o = Team.query.filter_by(id=opponent).first()
@@ -375,6 +440,11 @@ class Tournament(db.Model):
         return buchholz2
 
     def get_matches_structured_in_phases(self):
+        """ This methode returns all phases
+            of an instance of the class tournament as a list,
+            prepared to display for the user.
+            @Return: list of phases
+        """
         phases = []
         latest_phase = self.get_latest_phase_of_tournament()
         matches = Match.query.filter_by(tournament_id=self.id)
@@ -384,6 +454,11 @@ class Tournament(db.Model):
         return phases
 
     def get_matches_structured_in_ko(self):
+        """ This methode returns all ko phases
+            of an instance of the class tournament as a list,
+            prepared to display for the user.
+            @Return: list of phases
+        """
         phases = []
         latest_phase = self.get_latest_phase_of_tournament()
         matches = Match.query.filter_by(tournament_id=self.id)
@@ -409,8 +484,10 @@ class Tournament(db.Model):
 
 
 class Team(db.Model):
-    '''Class Team'''
-
+    """ This class represents a Team of an tournament.
+        A team consists of two players. A team is unique for an tournament,
+        that means a player cannot participate in two teams in one tournament.
+    """
     __tablename__ = 'team'
     id = db.Column(db.Integer, primary_key=True)
     create_time = db.Column('last_updated', db.DateTime, onupdate=datetime.now)
@@ -424,12 +501,19 @@ class Team(db.Model):
     ranking = db.Column(db.Integer, default=0)
 
     def __repr__(self):
-            return '<Team: %d>' % (self.id)
+            return '%d' % (self.id)
 
     def toString(self):
+        """ This method returns the players of a team as a string.
+            @Return: string of players
+        """
         return '/'.join(player.name for player in self.players)
 
     def to_json(self):
+        """ This method returns all the attributes
+            of an instance of the class team as a list
+            @Return: list of attributes of team
+        """
         json_team = {
             'url': url_for('api.get_team_of_tournament', team_id=self.id,
                            tournament_id=self.tournament_id, _external=True),
@@ -442,13 +526,17 @@ class Team(db.Model):
         return json_team
 
     def check_if_player_in_team(self, player):
+        """ This method checks if a player is in this team.
+            @Return: True if player in team else False
+        """
         return True if player in self.players else False
 
 
 class Match(db.Model):
-
-    '''docstring for Games'''
-
+    """ This class represents a team of an tournament.
+        On match two teams are participating and a match is part of
+        a phase of an tourmanent.
+    """
     __tablename__ = 'matches'
     id = db.Column(db.Integer, primary_key=True)
     team_a = db.Column(db.Integer, db.ForeignKey('team.id'))
@@ -463,6 +551,10 @@ class Match(db.Model):
         return '<Game %d went >' % (self.id)
 
     def to_json(self):
+        """ This method returns all the attributes
+            of an instance of the class match as a list
+            @Return: list of attributes of match
+        """
         json_match = {
             'url': url_for('api.get_match', tournament_id=self.tournament_id,
                            match_id=self.id, _external=True),
@@ -477,9 +569,10 @@ class Match(db.Model):
         return json_match
 
     def finish(self):
-        # If alreasy done then clause, set around over-flag
-        # TODO in match auslagern
-        # match = Match.query.filter_by(id=self.id).first()
+        """ This method finishes a match,
+            if the match is over. A match is over if
+            one team won enough sets, as defined in the tournament class.
+        """
         team_a = Team.query.filter_by(id=self.team_a).first()
         team_b = Team.query.filter_by(id=self.team_b).first()
         if self.over:
@@ -513,6 +606,7 @@ class Match(db.Model):
         db.session.commit()
 
     def set_win_against_freilos(self):
+        """ This method sets a win if a team plays against freilos"""
         if not (self.team_a.name == 'Freilos' or
                 self.team_b.name == 'Freilos'):
             return
@@ -526,6 +620,9 @@ class Match(db.Model):
             db.session.commit()
 
     def get_winner_of_match(self):
+        """ This method returns the winner of a match
+            @Return: object of the winning team
+        """
         match = Match.query.filter_by(id=self.id).first()
         winner = None
         if match.over:
@@ -537,7 +634,8 @@ class Match(db.Model):
 
 
 class Set(db.Model):
-
+    """ This class represents a set of an match.
+    """
     __tablename__ = 'sets'
     id = db.Column(db.Integer, primary_key=True)
     score_a = db.Column(db.Integer, nullable=False)
@@ -546,6 +644,9 @@ class Set(db.Model):
 
     @staticmethod
     def check_if_match_exists(match_id):
+        """ This static helper function checks if match exists.
+            @Return: True is match exists else False
+        """
         return True if Match.query.filter_by(
             id=match_id).count() == 1 else False
 
@@ -553,6 +654,10 @@ class Set(db.Model):
         return ' %d : %d' % (self.score_a, self.score_b)
 
     def to_json(self):
+        """ This method returns all the attributes
+            of an instance of the class set as a list
+            @Return: list of attributes of set
+        """
         json_match = {
             'url': url_for('api.get_set_of_match',
                            tournament_id=self.get_tournament_of_set(),
@@ -566,6 +671,9 @@ class Set(db.Model):
         return json_match
 
     def from_json(json_post, match_id):
+        """ This method instanciate an object
+            of the class set from a list
+        """
         score_a = json_post.get('score_a')
         score_b = json_post.get('score_b')
         if Set.check_if_match_exists(match_id) is False:
@@ -576,5 +684,9 @@ class Set(db.Model):
                    score_b=score_b, match_id=match_id)
 
     def get_tournament_of_set(self):
+        """ This method returns the id of the corrensponding
+            tournament of a specific set
+            @Return: if of the tournament
+        """
         match = Match.query.filter_by(id=self.match_id).first()
         return match.tournament_id

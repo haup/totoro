@@ -18,7 +18,7 @@ login_manager.login_view = 'auth.login'
 # This package is the app package of the prototype flask application totoro.
 # It was formed during the developing due to bachelor thesis by Tim Unkrig.
 
-# Its based by the book by Miguel Grinberg "Flask Web Development"
+# Its based by the book by Miguel Grinberg 'Flask Web Development'
 # with the ISBN: 978-1-449-37262-0
 
 # This application is there to conduct a foosbal tournament

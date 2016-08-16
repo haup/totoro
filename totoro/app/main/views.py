@@ -215,7 +215,7 @@ def del_team(tournament_id, team_id):
     return redirect(url_for('.list_teams_of_tournament', id=tournament_id))
 
 
-@main.route('/tournaments', methods=["GET", "POST"])
+@main.route('/tournaments', methods=['GET', 'POST'])
 @login_required
 def list_tournaments():
 
@@ -303,17 +303,17 @@ def start_tournament(id):
     matches = Match.query.filter_by(tournament_id=id)
 
     if not tournament.over and not matches.first():
-        if tournament.modus == "Swiss":
+        if tournament.modus == 'Swiss':
             tournament.shuffle_initial_ranking()
             tournament.draw_round()
         else:
-            if tournament.modus == "KO" and tournament.parent is None:
+            if tournament.modus == 'KO' and tournament.parent is None:
                 tournament.set_initial_ko_matches()
             else:
                 tournament.set_initial_ko_ranking()
                 tournament.set_initial_ko_matches()
     else:
-        flash("Tournament has already started!")
+        flash('Tournament has already started!')
     return redirect(url_for('.list_tournaments'))
 
 
@@ -345,8 +345,8 @@ def list_teams_of_tournament(id):
             db.session.commit()
             return redirect(url_for('.list_teams_of_tournament', id=id))
         else:
-            flash("One of these players are already" +
-                  " playing in that tournament!")
+            flash('One of these players are already' +
+                  ' playing in that tournament!')
     return render_template('list_teams_of_tournament.html',
                            form=form, teams=teams, players=players,
                            tournament_id=id)
@@ -364,8 +364,8 @@ def create_ko_for_finished_tournament(id):
     form = KoTournamentForm()
     tournament = Tournament()
     old_tournament = Tournament.query.filter_by(id=id).one()
-    form.name.data = old_tournament.name + "- KO"
-    form.modus.data = "KO"
+    form.name.data = old_tournament.name + '- KO'
+    form.modus.data = 'KO'
     if form.validate_on_submit():
         tournament.max_phase = 0
         tournament.name = form.name.data
@@ -378,7 +378,7 @@ def create_ko_for_finished_tournament(id):
                            form=form, tournament=tournament)
 
 
-@main.route("/tournaments/<int:id>/phases")
+@main.route('/tournaments/<int:id>/phases')
 @login_required
 def list_phases_of_tournament(id):
 
@@ -391,12 +391,12 @@ def list_phases_of_tournament(id):
     teams = Team.query
     if matches:
         tournament = Tournament.query.filter_by(id=id).first()
-        if tournament.modus == "KO":
+        if tournament.modus == 'KO':
             phases = tournament.get_matches_structured_in_ko()
         else:
             phases = tournament.get_matches_structured_in_phases()
     else:
-        flash("Tournament has not started!")
+        flash('Tournament has not started!')
         return redirect(url_for('.list_tournaments'))
     return render_template('list_phases_of_tournament.html',
                            tournament=tournament, phases=phases, teams=teams)

@@ -8,8 +8,8 @@ from wtforms.ext.sqlalchemy.fields import QuerySelectField
 class PlayerForm(Form):
 
     """ This class represents a form to create a new player"""
-    name = StringField("Name:", validators=[Required()])
-    email = StringField("Mail", validators=[Required()])
+    name = StringField('Name:', validators=[Required()])
+    email = StringField('Mail', validators=[Required()])
     submit = SubmitField('Submit')
 
 
@@ -22,8 +22,8 @@ class EditProfileForm(Form):
 
 class EditPlayerForm(Form):
     """ This class represents a form to edit a player"""
-    name = StringField("Edit New Player´s name:", validators=[Required()])
-    email = StringField("Edit New Player´s Mail", validators=[Required()])
+    name = StringField('Edit New Player´s name:', validators=[Required()])
+    email = StringField('Edit New Player´s Mail', validators=[Required()])
     submit = SubmitField('Submit')
 
 
@@ -45,10 +45,10 @@ class TeamForm(Form):
 class TournamentForm(Form):
 
     """ This class represents a form to create or alter a tournament"""
-    name = StringField("Name:", validators=[Required()])
-    modus = StringField("Modus:", validators=[Required()])
-    set_count = StringField("Count of Sets:", validators=[Required()])
-    max_phase = StringField("Max Phase:", validators=[Required()])
+    name = StringField('Name:', validators=[Required()])
+    modus = StringField('Modus:', validators=[Required()])
+    set_count = StringField('Count of Sets:', validators=[Required()])
+    max_phase = StringField('Max Phase:', validators=[Required()])
     submit = SubmitField('Submit')
 
 
@@ -57,7 +57,7 @@ class KoTournamentForm(Form):
     """ This class represents a form to create or alter a tournament
         with a knock out elimination
     """
-    name = StringField("Name:", validators=[Required()])
-    modus = StringField("Modus:", validators=[Required()])
-    set_count = StringField("Count of Sets:", validators=[Required()])
+    name = StringField('Name:', validators=[Required()])
+    modus = StringField('Modus:', validators=[Required()])
+    set_count = StringField('Count of Sets:', validators=[Required()])
     submit = SubmitField('Submit')

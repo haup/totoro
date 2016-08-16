@@ -1,21 +1,21 @@
-{% extends "base.html" %}
-{% import "bootstrap/wtf.html" as wtf %}
+{% extends 'base.html' %}
+{% import 'bootstrap/wtf.html' as wtf %}
 
 {% block title %}Players{% endblock %}
 
 {% block page_content %}
-<div class="page-header">
-    <div class="btn-group">
-        <a class="btn btn-success" href="/players/create">Add Player</a>
+<div class='page-header'>
+    <div class='btn-group'>
+        <a class='btn btn-success' href='/players/create'>Add Player</a>
     </div>
 </div>
-<ul class="list-group">
+<ul class='list-group'>
     {% for player in players %}
-     <li class="list-group-item clearfix" font-size="200%">
+     <li class='list-group-item clearfix' font-size='200%'>
         {{ player.id }}: {{ player.name }}
-        <span class="pull-right button-group">
-            <a href="/players/{{player.id}}" class="btn btn-primary"><span class="glyphicon glyphicon-edit"></span> Edit</a> 
-            <a href="/players/del/{{player.id}}" class="btn btn-danger"><span class="glyphicon glyphicon-remove"></span> Delete</a>
+        <span class='pull-right button-group'>
+            <a href='/players/{{player.id}}' class='btn btn-primary'><span class='glyphicon glyphicon-edit'></span> Edit</a> 
+            <a href='/players/del/{{player.id}}' class='btn btn-danger'><span class='glyphicon glyphicon-remove'></span> Delete</a>
         </span>
      </li>
     {% endfor %}

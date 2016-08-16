@@ -94,7 +94,7 @@ class APITestCase(unittest.TestCase):
         db.session.add(u)
         db.session.commit()
 
-        t = Tournament(id=1, name="test", modus="Swiss")
+        t = Tournament(id=1, name='test', modus='Swiss')
         db.session.add(t)
         db.session.commit()
         response = self.client.get(

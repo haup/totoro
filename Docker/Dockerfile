@@ -20,7 +20,7 @@ RUN apt-get update
 RUN apt-get install -y tar git curl nano wget dialog net-tools build-essential
 
 # Install Python and Basic Python Tools
-RUN apt-get install -y python3 python3-dev python3-distribute python3-pip
+RUN apt-get install -y python3 python3-dev python3-setuptools python3-pip
 
 # Copy the application folder inside the container
 ADD /home/tim/Coding/totoro /totoro

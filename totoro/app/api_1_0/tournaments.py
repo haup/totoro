@@ -57,7 +57,7 @@ def get_team_of_tournament(tournament_id, team_id):
     return jsonify(team.to_json())
 
 
-@api.route('/tournaments/<int:tournament_id>/matches', methods=["GET"])
+@api.route('/tournaments/<int:tournament_id>/matches', methods=['GET'])
 @permission_required(Permission.SET)
 def get_matches(tournament_id):
     """ This function queries all matches from the database and returns it as json
@@ -69,7 +69,7 @@ def get_matches(tournament_id):
     return jsonify([match.to_json() for match in matches])
 
 
-@api.route('/tournaments/<int:tournament_id>/matches/<int:match_id>', methods=["GET"])
+@api.route('/tournaments/<int:tournament_id>/matches/<int:match_id>', methods=['GET'])
 @permission_required(Permission.SET)
 def get_match(tournament_id, match_id):
     """ This function queries a specific match
@@ -128,7 +128,7 @@ def create_set_of_match(tournament_id, match_id):
     match = Match.query.filter_by(id=match_id).one()
     tournament = Tournament.query.filter_by(id=tournament_id).first()
     match.finish()
-    if tournament.modus == "KO":
+    if tournament.modus == 'KO':
         if tournament.check_is_phase_finishable():
             tournament.draw_next_ko_round()
     else:

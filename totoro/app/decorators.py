@@ -3,6 +3,10 @@ from flask import abort
 from flask_login import current_user
 from .models import Permission
 
+# This package is taken from the https://github.com/miguelgrinberg/flasky,
+# its decorator implementation for a flask application fits
+# every aspect for building a valid prototype.
+
 
 def permission_required(permission):
     def decorator(f):

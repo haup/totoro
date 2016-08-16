@@ -702,10 +702,10 @@ for round in games:
 
         j = i + 1
         while current_ranking[j] in used or current_ranking[j] in looping_player[4]:
-            print("    skipped: " + current_ranking[j] + "!!!!!!!!!!!!!!!!!!!!!!!!")
+            print('    skipped: ' + current_ranking[j] + '!!!!!!!!!!!!!!!!!!!!!!!!')
             j += 1
 
-        print(player_name + " vs " + current_ranking[j])
+        print(player_name + ' vs ' + current_ranking[j])
         used.append(current_ranking[j])
 
 
